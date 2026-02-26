@@ -13,7 +13,7 @@ env:
 
 jobs:
   test:
-    runs-on: [small, self-hosted]
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
