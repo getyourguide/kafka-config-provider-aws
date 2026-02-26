@@ -1,0 +1,34 @@
+on:
+  push:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: ${{ github.workflow }}${{ github.ref_name != github.event.repository.default_branch && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.ref_name != github.event.repository.default_branch }}
+
+env:
+  LANG: "en_US.UTF-8"
+
+jobs:
+  test:
+    runs-on: [small, self-hosted]
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Log into production account - generic
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
+        with:
+          aws-region: eu-central-1
+          role-to-assume: arn:aws:iam::130607246975:role/ci-base-access
+          role-session-name: kafka-config-provider-aws
+      - uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: 11
+      - name: Run tests
+        run: mvn clean test --no-transfer-progress -B
