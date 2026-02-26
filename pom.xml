@@ -192,6 +192,7 @@
                             <goal>kafka-connect</goal>
                         </goals>
                         <configuration>
+                            <ownerUsername>getyourguide</ownerUsername>
                             <confluentControlCenterIntegration>true</confluentControlCenterIntegration>
                             <documentationUrl>https://jcustenborder.github.io/kafka-connect-documentation/projects/kafka-config-provider-aws/</documentationUrl>
                             <componentTypes>
