@@ -13,13 +13,4 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@PluginOwner("jcustenborder")
-@PluginName("kafka-config-provider-aws")
-@Introduction("This plugin provides integration with the AWS Secrets Manager service.")
-@Title("AWS Secrets Manager Config Provider")
 package com.github.jcustenborder.kafka.config.aws;
-
-import com.github.jcustenborder.kafka.connect.utils.config.Introduction;
-import com.github.jcustenborder.kafka.connect.utils.config.PluginName;
-import com.github.jcustenborder.kafka.connect.utils.config.PluginOwner;
-import com.github.jcustenborder.kafka.connect.utils.config.Title;

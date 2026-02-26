@@ -15,9 +15,8 @@
  */
 package com.github.jcustenborder.kafka.config.aws;
 
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.github.jcustenborder.kafka.connect.utils.config.ConfigKeyBuilder;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 
@@ -39,14 +38,14 @@ class SecretsManagerConfigProviderConfig extends AbstractConfig {
 
   public static final String AWS_ACCESS_KEY_ID_CONFIG = "aws.access.key";
   public static final String AWS_ACCESS_KEY_ID_DOC = "AWS access key ID to connect with. If this value is not " +
-      "set the `DefaultAWSCredentialsProviderChain <https://docs.aws.amazon.com/AWSJavaSDK/latest/javadoc/com/amazonaws/auth/DefaultAWSCredentialsProviderChain.html>`_ " +
+      "set the `DefaultCredentialsProvider <https://sdk.amazonaws.com/java/api/latest/software/amazon/awssdk/auth/credentials/DefaultCredentialsProvider.html>`_ " +
       "will be used to attempt loading the credentials from several default locations.";
   public static final String AWS_SECRET_KEY_CONFIG = "aws.secret.key";
   public static final String AWS_SECRET_KEY_DOC = "AWS secret access key to connect with.";
 
   public final String region;
   public final long minimumSecretTTL;
-  public final AWSCredentials credentials;
+  public final AwsCredentials credentials;
   public final String prefix;
 
   public SecretsManagerConfigProviderConfig(Map<String, ?> settings) {
@@ -58,7 +57,7 @@ class SecretsManagerConfigProviderConfig extends AbstractConfig {
     String awsSecretKey = getPassword(AWS_SECRET_KEY_CONFIG).value();
 
     if (null != awsAccessKeyId && !awsAccessKeyId.isEmpty()) {
-      credentials = new BasicAWSCredentials(awsAccessKeyId, awsSecretKey);
+      credentials = AwsBasicCredentials.create(awsAccessKeyId, awsSecretKey);
     } else {
       credentials = null;
     }
@@ -67,39 +66,18 @@ class SecretsManagerConfigProviderConfig extends AbstractConfig {
 
   public static ConfigDef config() {
     return new ConfigDef()
-        .define(
-            ConfigKeyBuilder.of(REGION_CONFIG, ConfigDef.Type.STRING)
-                .documentation(REGION_DOC)
-                .importance(ConfigDef.Importance.HIGH)
-                .defaultValue("")
-                .build()
-        ).define(
-            ConfigKeyBuilder.of(AWS_ACCESS_KEY_ID_CONFIG, ConfigDef.Type.STRING)
-                .documentation(AWS_ACCESS_KEY_ID_DOC)
-                .importance(ConfigDef.Importance.HIGH)
-                .defaultValue("")
-                .build()
-        ).define(
-            ConfigKeyBuilder.of(AWS_SECRET_KEY_CONFIG, ConfigDef.Type.PASSWORD)
-                .documentation(AWS_SECRET_KEY_DOC)
-                .importance(ConfigDef.Importance.HIGH)
-                .defaultValue("")
-                .build()
-        )
-        .define(
-            ConfigKeyBuilder.of(PREFIX_CONFIG, ConfigDef.Type.STRING)
-                .documentation(PREFIX_DOC)
-                .importance(ConfigDef.Importance.LOW)
-                .defaultValue("")
-                .build()
-        ).define(
-            ConfigKeyBuilder.of(MIN_TTL_MS_CONFIG, ConfigDef.Type.LONG)
-                .documentation(MIN_TTL_MS_DOC)
-                .importance(ConfigDef.Importance.LOW)
-                .defaultValue(Duration.ofMinutes(5L).toMillis())
-                .validator(ConfigDef.Range.atLeast(1000L))
-                .build()
-        );
+        .define(REGION_CONFIG, ConfigDef.Type.STRING, "",
+            ConfigDef.Importance.HIGH, REGION_DOC)
+        .define(AWS_ACCESS_KEY_ID_CONFIG, ConfigDef.Type.STRING, "",
+            ConfigDef.Importance.HIGH, AWS_ACCESS_KEY_ID_DOC)
+        .define(AWS_SECRET_KEY_CONFIG, ConfigDef.Type.PASSWORD, "",
+            ConfigDef.Importance.HIGH, AWS_SECRET_KEY_DOC)
+        .define(PREFIX_CONFIG, ConfigDef.Type.STRING, "",
+            ConfigDef.Importance.LOW, PREFIX_DOC)
+        .define(MIN_TTL_MS_CONFIG, ConfigDef.Type.LONG,
+            Duration.ofMinutes(5L).toMillis(),
+            ConfigDef.Range.atLeast(1000L),
+            ConfigDef.Importance.LOW, MIN_TTL_MS_DOC);
   }
 
 }

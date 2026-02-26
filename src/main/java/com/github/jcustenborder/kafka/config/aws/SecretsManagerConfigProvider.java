@@ -15,18 +15,14 @@
  */
 package com.github.jcustenborder.kafka.config.aws;
 
-import com.amazonaws.services.secretsmanager.AWSSecretsManager;
-import com.amazonaws.services.secretsmanager.model.DecryptionFailureException;
-import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest;
-import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
-import com.amazonaws.services.secretsmanager.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.secretsmanager.model.DecryptionFailureException;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
+import software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.github.jcustenborder.kafka.connect.utils.config.Description;
-import com.github.jcustenborder.kafka.connect.utils.config.DocumentationSection;
-import com.github.jcustenborder.kafka.connect.utils.config.DocumentationSections;
-import com.github.jcustenborder.kafka.connect.utils.config.DocumentationTip;
 import com.google.common.collect.ImmutableSet;
 import org.apache.kafka.common.config.ConfigData;
 import org.apache.kafka.common.config.ConfigDef;
@@ -43,29 +39,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
-@Description("This config provider is used to retrieve secrets from the AWS Secrets Manager service.")
-@DocumentationTip("Config providers can be used with anything that supports the AbstractConfig base class that is shipped with Apache Kafka.")
-@DocumentationSections(
-    sections = {
-        @DocumentationSection(title = "Secret Value", text = "The value for the secret must be formatted as a JSON object. " +
-            "This allows multiple keys of data to be stored in a single secret. The name of the secret in AWS Secrets Manager " +
-            "will correspond to the path that is requested by the config provider.\n" +
-            "\n" +
-            ".. code-block:: json\n" +
-            "    :caption: Example Secret Value\n" +
-            "\n" +
-            "    {\n" +
-            "      \"username\" : \"${secretManager:secret/test/some/connector:username}\",\n" +
-            "      \"password\" : \"${secretManager:secret/test/some/connector:password}\"\n" +
-            "    }\n" +
-            "")
-    }
-)
 public class SecretsManagerConfigProvider implements ConfigProvider {
   private static final Logger log = LoggerFactory.getLogger(SecretsManagerConfigProvider.class);
   SecretsManagerConfigProviderConfig config;
   SecretsManagerFactory secretsManagerFactory = new SecretsManagerFactoryImpl();
-  AWSSecretsManager secretsManager;
+  SecretsManagerClient secretsManager;
   ObjectMapper mapper = new ObjectMapper();
 
   @Override
@@ -83,18 +61,17 @@ public class SecretsManagerConfigProvider implements ConfigProvider {
 
     try {
       log.debug("Requesting {} from Secrets Manager", path);
-      GetSecretValueRequest request = new GetSecretValueRequest()
-          .withSecretId(path.toString());
+      GetSecretValueRequest request = GetSecretValueRequest.builder()
+          .secretId(path.toString())
+          .build();
 
-      GetSecretValueResult result = this.secretsManager.getSecretValue(request);
+      GetSecretValueResponse result = this.secretsManager.getSecretValue(request);
       ObjectNode node;
 
-      if (null != result.getSecretString()) {
-        node = mapper.readValue(result.getSecretString(), ObjectNode.class);
-      } else if (null != result.getSecretBinary()) {
-        byte[] arr = new byte[result.getSecretBinary().remaining()];
-        result.getSecretBinary().get(arr);
-        node = mapper.readValue(arr, ObjectNode.class);
+      if (null != result.secretString()) {
+        node = mapper.readValue(result.secretString(), ObjectNode.class);
+      } else if (null != result.secretBinary()) {
+        node = mapper.readValue(result.secretBinary().asByteArray(), ObjectNode.class);
       } else {
         throw new ConfigException("");
       }
@@ -127,7 +104,7 @@ public class SecretsManagerConfigProvider implements ConfigProvider {
   @Override
   public void close() throws IOException {
     if (null != this.secretsManager) {
-      this.secretsManager.shutdown();
+      this.secretsManager.close();
     }
   }
 
