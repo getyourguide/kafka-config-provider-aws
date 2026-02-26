@@ -15,11 +15,11 @@
  */
 package com.github.jcustenborder.kafka.config.aws;
 
-import com.amazonaws.services.secretsmanager.AWSSecretsManager;
-import com.amazonaws.services.secretsmanager.model.DecryptionFailureException;
-import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest;
-import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
-import com.amazonaws.services.secretsmanager.model.ResourceNotFoundException;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
+import software.amazon.awssdk.services.secretsmanager.model.DecryptionFailureException;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueRequest;
+import software.amazon.awssdk.services.secretsmanager.model.GetSecretValueResponse;
+import software.amazon.awssdk.services.secretsmanager.model.ResourceNotFoundException;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import org.apache.kafka.common.config.ConfigData;
@@ -40,12 +40,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class SecretsManagerConfigProviderTest {
-  AWSSecretsManager secretsManager;
+  SecretsManagerClient secretsManager;
   SecretsManagerConfigProvider provider;
 
   @BeforeEach
   public void beforeEach() {
-    this.secretsManager = mock(AWSSecretsManager.class);
+    this.secretsManager = mock(SecretsManagerClient.class);
     this.provider = new SecretsManagerConfigProvider();
     this.provider.secretsManagerFactory = mock(SecretsManagerFactory.class);
     when(this.provider.secretsManagerFactory.create(any())).thenReturn(this.secretsManager);
@@ -61,8 +61,8 @@ public class SecretsManagerConfigProviderTest {
 
   @Test
   public void notFound() {
-    Throwable expected = new ResourceNotFoundException("Resource 'not/found' was not found.");
-    when(secretsManager.getSecretValue(any())).thenThrow(expected);
+    Throwable expected = ResourceNotFoundException.builder().message("Resource 'not/found' was not found.").build();
+    when(secretsManager.getSecretValue(any(GetSecretValueRequest.class))).thenThrow(expected);
     ConfigException configException = assertThrows(ConfigException.class, () -> {
       this.provider.get("not/found");
     });
@@ -71,8 +71,8 @@ public class SecretsManagerConfigProviderTest {
 
   @Test
   public void decryptionFailure() {
-    Throwable expected = new DecryptionFailureException("Could not decrypt resource 'not/found'.");
-    when(secretsManager.getSecretValue(any())).thenThrow(expected);
+    Throwable expected = DecryptionFailureException.builder().message("Could not decrypt resource 'not/found'.").build();
+    when(secretsManager.getSecretValue(any(GetSecretValueRequest.class))).thenThrow(expected);
     ConfigException configException = assertThrows(ConfigException.class, () -> {
       this.provider.get("not/found");
     });
@@ -82,19 +82,20 @@ public class SecretsManagerConfigProviderTest {
   @Test
   public void get() {
     final String secretName = "foo/bar/baz";
-    GetSecretValueResult result = new GetSecretValueResult()
-        .withName(secretName)
-        .withSecretString("{\n" +
+    GetSecretValueResponse result = GetSecretValueResponse.builder()
+        .name(secretName)
+        .secretString("{\n" +
             "  \"username\": \"asdf\",\n" +
             "  \"password\": \"asdf\"\n" +
-            "}");
+            "}")
+        .build();
     Map<String, String> expected = ImmutableMap.of(
         "username", "asdf",
         "password", "asdf"
     );
-    when(secretsManager.getSecretValue(any())).thenAnswer(invocationOnMock -> {
-      GetSecretValueRequest request =  invocationOnMock.getArgument(0);
-      assertEquals(secretName, request.getSecretId());
+    when(secretsManager.getSecretValue(any(GetSecretValueRequest.class))).thenAnswer(invocationOnMock -> {
+      GetSecretValueRequest request = invocationOnMock.getArgument(0);
+      assertEquals(secretName, request.secretId());
       return result;
     });
     ConfigData configData = this.provider.get(secretName, ImmutableSet.of());
@@ -110,19 +111,20 @@ public class SecretsManagerConfigProviderTest {
     );
     final String secretName = "foo/bar/baz";
     final String prefixedName = "prefixed/foo/bar/baz";
-    GetSecretValueResult result = new GetSecretValueResult()
-        .withName(prefixedName)
-        .withSecretString("{\n" +
+    GetSecretValueResponse result = GetSecretValueResponse.builder()
+        .name(prefixedName)
+        .secretString("{\n" +
             "  \"username\": \"asdf\",\n" +
             "  \"password\": \"asdf\"\n" +
-            "}");
+            "}")
+        .build();
     Map<String, String> expected = ImmutableMap.of(
         "username", "asdf",
         "password", "asdf"
     );
-    when(secretsManager.getSecretValue(any())).thenAnswer(invocationOnMock -> {
-      GetSecretValueRequest request =  invocationOnMock.getArgument(0);
-      assertEquals(prefixedName, request.getSecretId());
+    when(secretsManager.getSecretValue(any(GetSecretValueRequest.class))).thenAnswer(invocationOnMock -> {
+      GetSecretValueRequest request = invocationOnMock.getArgument(0);
+      assertEquals(prefixedName, request.secretId());
       return result;
     });
     ConfigData configData = this.provider.get(secretName, ImmutableSet.of());

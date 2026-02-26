@@ -15,8 +15,8 @@
  */
 package com.github.jcustenborder.kafka.config.aws;
 
-import com.amazonaws.services.secretsmanager.AWSSecretsManager;
+import software.amazon.awssdk.services.secretsmanager.SecretsManagerClient;
 
 interface SecretsManagerFactory {
-  AWSSecretsManager create(SecretsManagerConfigProviderConfig config);
+  SecretsManagerClient create(SecretsManagerConfigProviderConfig config);
 }
