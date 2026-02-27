@@ -1,6 +1,9 @@
 # Introduction
 [Documentation](https://jcustenborder.github.io/kafka-connect-documentation/projects/kafka-config-provider-aws) | [Download from the Confluent Hub](https://www.confluent.io/hub/jcustenborder/kafka-config-provider-aws)
 
+> **Note:** This is a fork of [jcustenborder/kafka-config-provider-aws](https://github.com/jcustenborder/kafka-config-provider-aws) maintained by [GetYourGuide](https://github.com/getyourguide).
+> It upgrades the original project to use **AWS SDK v2** (`software.amazon.awssdk`) and **Kafka Connect API 4.2.0**, replacing the deprecated AWS SDK v1 and older Kafka Connect dependencies.
+
 This plugin provides integration with the AWS Secrets Manager service.
 
 # Installation
